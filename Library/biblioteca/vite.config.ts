@@ -2,8 +2,12 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  base: command === 'build' ? '/biblioteca/' : '/',
   plugins: [react()],
+  build: {
+    outDir: 'dist/biblioteca',
+  },
   server: {
     proxy: {
       '/api': {
@@ -12,4 +16,4 @@ export default defineConfig({
       },
     },
   },
-})
+}))

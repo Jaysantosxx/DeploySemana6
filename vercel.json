@@ -1,0 +1,49 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "biblioteca": {
+      "root": "Library/biblioteca",
+      "framework": "vite",
+      "outputDirectory": "dist",
+      "rewrites": [
+        { "source": "/biblioteca", "destination": "/biblioteca/index.html" },
+        { "source": "/biblioteca/(.*)", "destination": "/biblioteca/index.html" }
+      ]
+    },
+    "painel-meteorologico": {
+      "root": "painel-meteorologico/painel-meteorologico-projeto-final",
+      "framework": "vite",
+      "outputDirectory": "dist",
+      "rewrites": [
+        { "source": "/painel", "destination": "/painel/index.html" },
+        { "source": "/painel/(.*)", "destination": "/painel/index.html" }
+      ]
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/biblioteca",
+      "destination": {
+        "service": "biblioteca"
+      }
+    },
+    {
+      "source": "/biblioteca/(.*)",
+      "destination": {
+        "service": "biblioteca"
+      }
+    },
+    {
+      "source": "/painel",
+      "destination": {
+        "service": "painel-meteorologico"
+      }
+    },
+    {
+      "source": "/painel/(.*)",
+      "destination": {
+        "service": "painel-meteorologico"
+      }
+    }
+  ]
+}

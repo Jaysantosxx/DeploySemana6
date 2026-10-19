@@ -1,1 +1,6 @@
-{ "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }] }
+{
+  "rewrites": [
+    { "source": "/biblioteca", "destination": "/biblioteca/index.html" },
+    { "source": "/biblioteca/(.*)", "destination": "/biblioteca/index.html" }
+  ]
+}

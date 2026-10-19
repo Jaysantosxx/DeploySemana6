@@ -1,6 +1,8 @@
 # 🌤️ Painel Meteorológico
 
-> Aplicação web que mostra o clima atual de qualquer cidade do mundo, com login seguro por token (JWT), backend próprio, testes automatizados e deploy contínuo.
+> Aplicação web que mostra o clima atual de qualquer cidade do mundo, com login por token (JWT), backend local, testes automatizados e interface responsiva.
+
+> **Deploy Vercel deste monorepo:** publica somente a interface em `/painel`. A API não faz parte do deploy, então login, cadastro e sessão autenticada não estarão disponíveis no site publicado.
 
 ![Testes](https://img.shields.io/badge/testes-59%20passando-brightgreen)
 ![Cobertura](https://img.shields.io/badge/cobertura-~91%25-brightgreen)
@@ -9,7 +11,7 @@
 ![Deploy](https://img.shields.io/badge/deploy-Vercel-black)
 
 
-**Acesso de demonstração:** `demo@painel.com` · `senha123`
+**Acesso local de demonstração:** `demo@painel.com` · `senha123` (no deploy da interface, a API não é publicada).
 
 ---
 
@@ -47,7 +49,7 @@
 | Back-end | Node.js, Express 5, JSON Web Token, bcryptjs |
 | Testes | Jest, React Testing Library, user-event, Supertest |
 | Qualidade | ESLint |
-| Deploy | Vercel (front-end estático + função serverless) |
+| Deploy | Vercel (interface estática em `/painel`) |
 | API externa | [OpenWeatherMap](https://openweathermap.org/api) |
 
 ## 🚀 Como rodar localmente
@@ -95,8 +97,7 @@ Acesse **http://localhost:5173** e entre com `demo@painel.com` / `senha123`.
 
 ```
 .
-├── api/                  # Entrada serverless da Vercel (exporta o app Express)
-├── server/               # API REST: login, /me, health (+ testes)
+├── server/               # API REST local: login, /me, health (+ testes)
 ├── src/
 │   ├── components/       # SearchBar, WeatherDisplay, ProtectedRoute, ThemeSwitcher
 │   ├── context/          # ThemeContext e AuthProvider (estado global)
@@ -105,8 +106,10 @@ Acesse **http://localhost:5173** e entre com `demo@painel.com` / `senha123`.
 │   ├── pages/            # Home, ForecastDetails, Login, About, NotFound
 │   ├── services/         # authApi (chamadas HTTP ao backend)
 │   └── config.js         # Único ponto de leitura de variáveis de ambiente
-└── vercel.json           # Rewrites: /api/* → função; demais rotas → SPA
+└── vercel.json           # Configuração Vercel compartilhada na raiz do monorepo
 ```
+
+O fluxo de autenticação descrito acima funciona quando a API local está em execução. O deploy estático em `/painel` não inclui esse serviço.
 
 ### Fluxo de autenticação
 

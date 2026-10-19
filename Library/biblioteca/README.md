@@ -71,7 +71,7 @@ Se o Vite escolher outra porta, atualize `CORS_ORIGIN` no arquivo do backend qua
 
 ### Frontend
 
-As variáveis `VITE_API_URL` e `VITE_COVERS_URL` apontam para os serviços públicos da Open Library. Em desenvolvimento, o frontend usa `/api` por meio do proxy do Vite. Em produção, configure `VITE_BACKEND_URL` com a URL pública completa da API, terminando em `/api`, por exemplo `https://api.exemplo.com/api`.
+As variáveis `VITE_API_URL` e `VITE_COVERS_URL` apontam para os serviços públicos da Open Library. Em desenvolvimento, o frontend usa `/api` por meio do proxy do Vite. Com uma API publicada separadamente, configure `VITE_BACKEND_URL` com sua URL pública completa, terminando em `/api`, por exemplo `https://api.exemplo.com/api`.
 
 O arquivo `.env.example` documenta as variáveis do frontend. Variáveis com prefixo `VITE_` são incorporadas ao bundle público; não armazene segredos nelas.
 
@@ -100,6 +100,12 @@ npm --prefix server run build
 ```
 
 O teste de integração inicia uma API isolada e usa um banco SQLite temporário; não altera o banco de desenvolvimento.
+
+## Deploy deste monorepo na Vercel
+
+A configuração na raiz do repositório publica somente as interfaces: Biblioteca em `/biblioteca` e Painel Meteorológico em `/painel`. As APIs não são serviços deste deploy. Por isso, cadastro, login, empréstimos, estante e operações que dependem da API não funcionarão no site publicado até que um backend seja hospedado e configurado. O frontend usa caminhos relativos para as rotas da API em desenvolvimento; defina `VITE_BACKEND_URL` para uma API externa antes do build quando ela estiver disponível.
+
+O backend desta aplicação grava dados em SQLite local. Não o publique como função serverless esperando que os dados persistam; escolha um host com armazenamento persistente antes de conectar uma instância de produção.
 
 ## Estrutura
 
