@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#10152a" />
+    <title>Biblioteca — apresentação final</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Inter, "Segoe UI", system-ui, sans-serif;
+        background: #10152a;
+        color: #f5f6ff;
+        font-synthesis: none;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+        --muted: #afb7d1;
+        --accent: #a9b3ff;
+        --line: rgba(226, 231, 255, 0.16);
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        display: grid;
+        min-width: 320px;
+        min-height: 100vh;
+        margin: 0;
+        place-items: center;
+        background:
+          radial-gradient(ellipse at 13% 8%, rgba(93, 105, 221, 0.3), transparent 38rem),
+          radial-gradient(ellipse at 91% 89%, rgba(90, 69, 178, 0.24), transparent 32rem),
+          #10152a;
+      }
+
+      .stage {
+        display: grid;
+        width: min(100vw, 1440px);
+        min-height: min(100vh, 810px);
+        grid-template-rows: 1fr auto;
+        padding: clamp(1rem, 4vw, 3.5rem);
+      }
+
+      .slide {
+        display: none;
+        position: relative;
+        min-height: 0;
+        flex-direction: column;
+        justify-content: center;
+        padding: clamp(1.4rem, 6vw, 6rem);
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: clamp(1.2rem, 3vw, 2.5rem);
+        background: linear-gradient(145deg, rgba(255,255,255,.075), rgba(255,255,255,.018));
+        box-shadow: 0 32px 100px rgba(0,0,0,.28);
+      }
+
+      .slide.active { display: flex; }
+
+      .slide::after {
+        position: absolute;
+        right: 8%;
+        bottom: 0;
+        width: 32%;
+        height: 4px;
+        border-radius: 4px 4px 0 0;
+        background: linear-gradient(90deg, transparent, #98a4ff, #a879ff);
+        content: "";
+        opacity: .75;
+      }
+
+      .kicker {
+        margin: 0 0 1rem;
+        color: var(--accent);
+        font-size: .78rem;
+        font-weight: 800;
+        letter-spacing: .17em;
+        text-transform: uppercase;
+      }
+
+      h1, h2 {
+        max-width: 1000px;
+        margin: 0;
+        font-size: clamp(2.5rem, 7vw, 6.2rem);
+        font-weight: 800;
+        letter-spacing: -.075em;
+        line-height: 1.02;
+      }
+
+      h2 { font-size: clamp(2.2rem, 5vw, 4.7rem); }
+      h1 span { color: #a8b2ff; }
+
+      .lead {
+        max-width: 760px;
+        margin: 1.5rem 0 0;
+        color: var(--muted);
+        font-size: clamp(1.05rem, 2vw, 1.45rem);
+        line-height: 1.65;
+      }
+
+      .points {
+        display: grid;
+        width: min(100%, 1000px);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: .9rem;
+        margin: 2rem 0 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .points li {
+        min-height: 80px;
+        padding: 1rem 1.15rem;
+        border: 1px solid var(--line);
+        border-radius: 1rem;
+        color: #e8ebf8;
+        background: rgba(255,255,255,.035);
+        font-size: clamp(.95rem, 1.6vw, 1.15rem);
+      }
+
+      .points strong {
+        display: block;
+        margin-bottom: .25rem;
+        color: #fff;
+      }
+
+      .flow {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: .7rem;
+        margin-top: 2.1rem;
+        color: #f5f6ff;
+        font-size: clamp(.9rem, 1.6vw, 1.2rem);
+        font-weight: 700;
+      }
+
+      .flow span {
+        padding: .7rem .9rem;
+        border: 1px solid var(--line);
+        border-radius: .8rem;
+        background: rgba(255,255,255,.045);
+      }
+
+      .flow b { color: var(--accent); }
+
+      .note {
+        display: none;
+        max-width: 900px;
+        margin-top: 1.5rem;
+        padding: 1rem 1.15rem;
+        border-left: 3px solid var(--accent);
+        color: var(--muted);
+        background: rgba(0,0,0,.16);
+        line-height: 1.6;
+      }
+
+      .notes-on .note { display: block; }
+
+      .controls {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1.1rem .3rem 0;
+        color: var(--muted);
+        font-size: .85rem;
+      }
+
+      .control-group { display: flex; align-items: center; gap: .55rem; }
+
+      button {
+        min-height: 42px;
+        padding: .55rem .85rem;
+        border: 1px solid var(--line);
+        border-radius: .75rem;
+        color: #f5f6ff;
+        background: rgba(255,255,255,.06);
+        cursor: pointer;
+        font: inherit;
+        font-weight: 700;
+      }
+
+      button:hover:not(:disabled) { background: rgba(255,255,255,.13); }
+      button:disabled { opacity: .4; cursor: not-allowed; }
+      button:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+      .progress {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #8594ff, #c18bff);
+        transition: width 180ms ease;
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      @media (max-width: 650px) {
+        .stage { min-height: 100svh; padding: .65rem; }
+        .slide { padding: 1.3rem; border-radius: 1.1rem; }
+        .points { grid-template-columns: 1fr; gap: .55rem; margin-top: 1.2rem; }
+        .points li { min-height: auto; padding: .75rem .85rem; }
+        .flow { gap: .4rem; margin-top: 1.3rem; }
+        .flow span { padding: .5rem .6rem; }
+        .controls { flex-wrap: wrap; font-size: .75rem; }
+        .control-group { gap: .35rem; }
+        button { min-height: 38px; padding: .45rem .6rem; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { transition-duration: .01ms !important; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="progress" id="progress" aria-hidden="true"></div>
+    <main class="stage" aria-label="Apresentação do projeto Biblioteca">
+      <section class="slide active" aria-labelledby="slide-title-1">
+        <p class="kicker">Projeto Capstone · demonstração final</p>
+        <h1 id="slide-title-1">Biblioteca<span>.</span></h1>
+        <p class="lead">Encontre sua próxima leitura. Organize sua estante. Acompanhe seus empréstimos em um só lugar.</p>
+        <p class="note"><strong>Fala:</strong> “Olá! Este é o Biblioteca, um catálogo digital que transforma a descoberta de livros em uma experiência pessoal de leitura.” Apresente o problema em uma frase e passe para a visão geral.</p>
+      </section>
+
+      <section class="slide" aria-labelledby="slide-title-2">
+        <p class="kicker">01 · O desafio</p>
+        <h2 id="slide-title-2">Descobrir é fácil. Organizar tudo é outra história.</h2>
+        <ul class="points">
+          <li><strong>Descoberta</strong>Buscar livros por título, autor e categoria.</li>
+          <li><strong>Disponibilidade</strong>Saber se há exemplares para emprestar ou reservar.</li>
+          <li><strong>Continuidade</strong>Manter leituras, desejos e histórico organizados.</li>
+          <li><strong>Uma solução integrada</strong>Conectar catálogo público a uma biblioteca pessoal persistente.</li>
+        </ul>
+        <p class="note"><strong>Fala:</strong> “O desafio não era só encontrar um livro: era conectar a busca a uma rotina de leitura e circulação.” Explique que a disponibilidade é simulada, pois a Open Library não fornece estoque físico.</p>
+      </section>
+
+      <section class="slide" aria-labelledby="slide-title-3">
+        <p class="kicker">02 · O produto</p>
+        <h2 id="slide-title-3">Da busca à estante pessoal.</h2>
+        <div class="flow" aria-label="Fluxo do usuário">
+          <span>Descobrir</span><b aria-hidden="true">→</b>
+          <span>Explorar detalhes</span><b aria-hidden="true">→</b>
+          <span>Emprestar ou reservar</span><b aria-hidden="true">→</b>
+          <span>Organizar leituras</span>
+        </div>
+        <ul class="points">
+          <li><strong>Catálogo</strong>Pesquisa, filtros, ordenação e detalhes com capas.</li>
+          <li><strong>Conta</strong>Cadastro, login e sessão segura com JWT.</li>
+          <li><strong>Circulação</strong>Empréstimo, devolução, disponibilidade e reservas.</li>
+          <li><strong>Estante</strong>Listas “Lista de desejos”, “Lendo” e “Concluído”.</li>
+        </ul>
+        <p class="note"><strong>Fala:</strong> “O catálogo é público; para emprestar e criar uma estante, a pessoa entra ou cria uma conta.” Mostre o fluxo completo na demonstração em vez de ler a lista.</p>
+      </section>
+
+      <section class="slide" aria-labelledby="slide-title-4">
+        <p class="kicker">03 · Como foi construído</p>
+        <h2 id="slide-title-4">Uma interface. Uma API. Dados que permanecem.</h2>
+        <ul class="points">
+          <li><strong>Frontend</strong>React + TypeScript + Vite + React Router.</li>
+          <li><strong>Backend</strong>Express + validação Zod + proteção Helmet e rate limit.</li>
+          <li><strong>Dados</strong>SQLite persistente para usuários, empréstimos, reservas e estante.</li>
+          <li><strong>Catálogo externo</strong>Metadados e capas consultados na Open Library.</li>
+        </ul>
+        <div class="flow" aria-label="Arquitetura">
+          <span>Navegador</span><b aria-hidden="true">→</b>
+          <span>API Express</span><b aria-hidden="true">→</b>
+          <span>SQLite</span>
+          <span>Navegador</span><b aria-hidden="true">→</b>
+          <span>Open Library</span>
+        </div>
+        <p class="note"><strong>Fala:</strong> “A interface não grava empréstimos no navegador: ela chama a API, que valida regras e persiste os dados em SQLite. Senhas recebem hash e a sessão usa token assinado.”</p>
+      </section>
+
+      <section class="slide" aria-labelledby="slide-title-5">
+        <p class="kicker">04 · Ensaio da demonstração</p>
+        <h2 id="slide-title-5">Uma demonstração em 90 segundos.</h2>
+        <ol class="points">
+          <li><strong>1. Explore</strong>Busque “Machado de Assis” e aplique um filtro.</li>
+          <li><strong>2. Descubra</strong>Abra um livro e destaque detalhes e disponibilidade.</li>
+          <li><strong>3. Entre</strong>Use uma conta de demonstração preparada ou cadastre uma.</li>
+          <li><strong>4. Conclua</strong>Empreste, marque “Lendo” e confirme na estante e nos empréstimos.</li>
+        </ol>
+        <p class="note"><strong>Fala/ação:</strong> Use uma conta e um livro que já foram ensaiados. Deixe uma segunda conta pronta para repetir o fluxo; não mostre dados pessoais. Se a rede falhar, mostre a estante já persistida e explique a separação entre API e catálogo externo.</p>
+      </section>
+
+      <section class="slide" aria-labelledby="slide-title-6">
+        <p class="kicker">05 · Qualidade e próximos passos</p>
+        <h2 id="slide-title-6">Pronto para demonstrar. Transparente sobre o que falta.</h2>
+        <ul class="points">
+          <li><strong>Qualidade verificada</strong>Build, lint e teste de integração da API.</li>
+          <li><strong>Experiência</strong>Layout responsivo, teclado, foco visível e tema escuro do sistema.</li>
+          <li><strong>Limite atual</strong>Estoque ilustrativo; catálogo depende da disponibilidade da Open Library.</li>
+          <li><strong>Próximo marco</strong>Publicar frontend e API com banco persistente e links configurados.</li>
+        </ul>
+        <p class="note"><strong>Fala:</strong> “O ensaio também é honesto sobre limitações. O inventário é simulado; em produção, a API precisa de armazenamento persistente, origem CORS e segredo configurados.” Não anuncie um link ao vivo até o deploy estar validado.</p>
+      </section>
+
+      <section class="slide" aria-labelledby="slide-title-7">
+        <p class="kicker">Obrigado</p>
+        <h2 id="slide-title-7">Mais leitura. Menos atrito.</h2>
+        <p class="lead">Biblioteca — descubra, acompanhe e organize sua próxima história.</p>
+        <p class="note"><strong>Fechamento:</strong> “Obrigado! Estou à disposição para perguntas.” Termine aqui; não volte para slides de código a menos que perguntem.</p>
+      </section>
+
+      <footer class="controls">
+        <div class="control-group">
+          <button type="button" id="previous" aria-label="Slide anterior">←</button>
+          <button type="button" id="next" aria-label="Próximo slide">→</button>
+          <span id="counter" aria-live="polite">1 / 7</span>
+        </div>
+        <span>← → navegar · N notas · F tela cheia</span>
+        <div class="control-group">
+          <button type="button" id="notes" aria-pressed="false">Notas</button>
+          <button type="button" id="fullscreen">Tela cheia</button>
+        </div>
+      </footer>
+      <p class="sr-only" id="announcement" aria-live="polite"></p>
+    </main>
+    <script>
+      const slides = [...document.querySelectorAll('.slide')];
+      const counter = document.querySelector('#counter');
+      const progress = document.querySelector('#progress');
+      const announcement = document.querySelector('#announcement');
+      let current = 0;
+
+      function show(index) {
+        current = Math.max(0, Math.min(index, slides.length - 1));
+        slides.forEach((slide, position) => {
+          slide.classList.toggle('active', position === current);
+          slide.setAttribute('aria-hidden', String(position !== current));
+        });
+        counter.textContent = `${current + 1} / ${slides.length}`;
+        progress.style.width = `${((current + 1) / slides.length) * 100}%`;
+        announcement.textContent = `Slide ${current + 1} de ${slides.length}`;
+        document.querySelector('#previous').disabled = current === 0;
+        document.querySelector('#next').disabled = current === slides.length - 1;
+      }
+
+      document.querySelector('#previous').addEventListener('click', () => show(current - 1));
+      document.querySelector('#next').addEventListener('click', () => show(current + 1));
+      document.querySelector('#notes').addEventListener('click', (event) => {
+        const enabled = document.body.classList.toggle('notes-on');
+        event.currentTarget.setAttribute('aria-pressed', String(enabled));
+      });
+      document.querySelector('#fullscreen').addEventListener('click', async () => {
+        if (document.fullscreenElement) await document.exitFullscreen();
+        else await document.documentElement.requestFullscreen();
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if (event.altKey || event.ctrlKey || event.metaKey) return;
+        if (event.key === 'ArrowRight' || event.key === 'PageDown' || event.key === ' ') {
+          event.preventDefault();
+          show(current + 1);
+        } else if (event.key === 'ArrowLeft' || event.key === 'PageUp') {
+          event.preventDefault();
+          show(current - 1);
+        } else if (event.key.toLowerCase() === 'n') {
+          document.querySelector('#notes').click();
+        } else if (event.key.toLowerCase() === 'f') {
+          document.querySelector('#fullscreen').click();
+        }
+      });
+
+      show(0);
+    </script>
+  </body>
+</html>
