@@ -1,19 +1,18 @@
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
+const isVercelBuild = process.env.VERCEL === '1' && process.env.NETLIFY !== 'true'
+
 // https://vite.dev/config/
-export default defineConfig(({ command }) => ({
-  base: command === 'build' ? '/biblioteca/' : '/',
+export default defineConfig({
+  base: isVercelBuild ? '/biblioteca/' : '/',
   plugins: [react()],
   build: {
-    outDir: 'dist/biblioteca',
+    outDir: isVercelBuild ? 'dist/biblioteca' : 'dist',
   },
   server: {
     proxy: {
-      '/api': {
-        target: 'http://localhost:3333',
-        changeOrigin: true,
-      },
+      '/api': 'http://localhost:3333',
     },
   },
-}))
+})

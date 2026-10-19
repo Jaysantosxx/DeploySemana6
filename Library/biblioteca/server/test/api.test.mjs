@@ -1,66 +1,48 @@
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
+import { createServer } from 'node:http';
 import { once } from 'node:events';
-import { createServer } from 'node:net';
-import { mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
+import { DataType, newDb } from 'pg-mem';
 import { test } from 'node:test';
 
-async function reservePort() {
-  const server = createServer();
+test('fluxo PostgreSQL de cadastro, autenticação, empréstimo e estante', async (t) => {
+  process.env.JWT_SECRET = 'integration-test-secret';
+  process.env.DATABASE_URL = 'postgres://test:test@localhost:5432/test';
+
+  const memory = newDb({ autoCreateForeignKeyIndices: true });
+  memory.public.registerFunction({
+    name: 'hashtext',
+    args: [DataType.text],
+    returns: DataType.integer,
+    implementation: (value) => [...value].reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) | 0, 0),
+  });
+  memory.public.registerFunction({
+    name: 'pg_advisory_xact_lock',
+    args: [DataType.integer],
+    returns: DataType.integer,
+    implementation: () => 0,
+  });
+  const { Pool: MemoryPool } = memory.adapters.createPg();
+  const { configurePool, initializeDatabase, closePool } = await import('../src/db.js');
+  configurePool(new MemoryPool());
+  await initializeDatabase();
+
+  const { app } = await import('../src/app.js');
+  const server = createServer(app);
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
   const address = server.address();
   assert.ok(address && typeof address !== 'string');
-  await new Promise((resolve, reject) => {
-    server.close((error) => (error ? reject(error) : resolve()));
-  });
-  return address.port;
-}
-
-async function waitForApi(baseUrl, process, output) {
-  const deadline = Date.now() + 15000;
-  while (Date.now() < deadline) {
-    if (process.exitCode !== null) throw new Error(`API encerrou antes de iniciar:\n${output()}`);
-    try {
-      const response = await fetch(`${baseUrl}/health`);
-      if (response.ok) return;
-    } catch {
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
-  }
-  throw new Error(`Tempo esgotado ao iniciar API:\n${output()}`);
-}
-
-test('fluxo de cadastro, autenticação, empréstimo e estante', async (t) => {
-  const directory = await mkdtemp(path.join(tmpdir(), 'library-api-test-'));
-  const port = await reservePort();
-  const server = spawn(process.execPath, ['--import', 'tsx', 'src/index.ts'], {
-    cwd: process.cwd(),
-    env: {
-      ...process.env,
-      PORT: String(port),
-      JWT_SECRET: 'integration-test-secret',
-      DB_PATH: path.join(directory, 'library.db'),
-      CORS_ORIGIN: `http://localhost:${port}`,
-    },
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-  let logs = '';
-  server.stdout.setEncoding('utf8').on('data', (chunk) => { logs += chunk; });
-  server.stderr.setEncoding('utf8').on('data', (chunk) => { logs += chunk; });
+  const baseUrl = `http://127.0.0.1:${address.port}/api`;
 
   t.after(async () => {
-    if (server.exitCode === null) {
-      server.kill();
-      await once(server, 'exit');
-    }
-    await rm(directory, { recursive: true, force: true });
+    server.close();
+    await once(server, 'close');
+    await closePool();
   });
 
-  const baseUrl = `http://127.0.0.1:${port}/api`;
-  await waitForApi(baseUrl, server, () => logs);
+  const health = await fetch(`${baseUrl}/health`);
+  assert.equal(health.status, 200);
+  assert.deepEqual(await health.json(), { ok: true });
 
   const email = `test-${Date.now()}@example.com`;
   const register = await fetch(`${baseUrl}/auth/register`, {
@@ -116,7 +98,7 @@ test('fluxo de cadastro, autenticação, empréstimo e estante', async (t) => {
     body: JSON.stringify({ key, title: 'Livro de teste' }),
   });
   assert.equal(loan.status, 201);
-  const loanSnapshot = await fetch(`${baseUrl}/me`, { headers }).then((res) => res.json());
+  const loanSnapshot = await fetch(`${baseUrl}/me`, { headers }).then((response) => response.json());
   assert.equal(loanSnapshot.loans.length, 1);
 
   const book = { key, title: 'Livro de teste', author: 'Autoria', subjects: [], popularity: 0 };
@@ -126,7 +108,7 @@ test('fluxo de cadastro, autenticação, empréstimo e estante', async (t) => {
     body: JSON.stringify({ book, status: 'Lendo' }),
   });
   assert.equal(shelf.status, 200);
-  const shelfSnapshot = await fetch(`${baseUrl}/me`, { headers }).then((res) => res.json());
+  const shelfSnapshot = await fetch(`${baseUrl}/me`, { headers }).then((response) => response.json());
   assert.equal(shelfSnapshot.shelf[0].status, 'Lendo');
 
   const returned = await fetch(`${baseUrl}/loans/${loanSnapshot.loans[0].id}/return`, {
@@ -134,6 +116,29 @@ test('fluxo de cadastro, autenticação, empréstimo e estante', async (t) => {
     headers,
   });
   assert.equal(returned.status, 200);
-  const finalSnapshot = await fetch(`${baseUrl}/me`, { headers }).then((res) => res.json());
+  const finalSnapshot = await fetch(`${baseUrl}/me`, { headers }).then((response) => response.json());
   assert.ok(finalSnapshot.loans[0].returnedAt);
+});
+
+test('Netlify Function encaminha /api/health para o Express', async () => {
+  const memory = newDb();
+  const { Pool: MemoryPool } = memory.adapters.createPg();
+  const { configurePool, initializeDatabase } = await import('../src/db.js');
+  configurePool(new MemoryPool());
+  await initializeDatabase();
+
+  const { handler } = await import('../../netlify/functions/api.ts');
+  const response = await handler({
+    httpMethod: 'GET',
+    path: '/.netlify/functions/api/health',
+    rawUrl: 'http://localhost/.netlify/functions/api/health',
+    headers: { host: 'localhost' },
+    queryStringParameters: null,
+    multiValueQueryStringParameters: null,
+    body: null,
+    isBase64Encoded: false,
+  }, {});
+
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(JSON.parse(response.body), { ok: true });
 });

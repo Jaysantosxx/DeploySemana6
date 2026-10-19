@@ -8,11 +8,7 @@ import { AppProvider } from './AppContext'
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AppProvider>
-      <BrowserRouter
-        basename={import.meta.env.BASE_URL === '/'
-          ? undefined
-          : import.meta.env.BASE_URL.replace(/\/$/, '')}
-      >
+      <BrowserRouter>
         <App />
       </BrowserRouter>
     </AppProvider>

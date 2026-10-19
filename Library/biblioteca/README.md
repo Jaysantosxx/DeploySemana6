@@ -4,7 +4,7 @@
 
 ## Sobre
 
-Biblioteca é uma aplicação web responsiva que combina o catálogo aberto da Open Library com uma API própria para contas, empréstimos, reservas e estantes pessoais. O catálogo e as capas são obtidos da Open Library; os dados de usuário e circulação são validados pela API e persistidos em SQLite.
+Biblioteca é uma aplicação web responsiva que combina o catálogo aberto da Open Library com uma API própria para contas, empréstimos, reservas e estantes pessoais. O catálogo e as capas são obtidos da Open Library; os dados de usuário e circulação são validados pela API Express e persistidos em PostgreSQL (Neon).
 
 ## Funcionalidades
 
@@ -21,26 +21,29 @@ Biblioteca é uma aplicação web responsiva que combina o catálogo aberto da O
 | Camada | Tecnologias |
 | --- | --- |
 | Interface | React, TypeScript, Vite, React Router |
-| API | Node.js, Express 5, TypeScript |
-| Persistência | SQLite com `better-sqlite3` |
-| Segurança | JWT, bcrypt, Zod, Helmet, CORS, limitação de tentativas de autenticação |
+| API | Node.js, Express 5, TypeScript, Netlify Functions |
+| Persistência | PostgreSQL com `pg` (Neon) |
+| Segurança | JWT, bcrypt, Zod, Helmet, limitação de tentativas de autenticação |
 | Catálogo | Open Library Search, Works e Covers APIs |
 
 ## Requisitos
 
-- Node.js 20 ou superior e npm.
+- Node.js 20.19+ ou 22.12+ e npm.
 - Acesso à internet para consultar o catálogo e as capas da Open Library.
+- Uma base PostgreSQL (por exemplo, Neon), local ou hospedada.
 
 ## Executar localmente
 
-Na raiz `Library/biblioteca`, instale as dependências:
+Na raiz `Library/biblioteca`, instale as dependências do frontend/API e as ferramentas locais do servidor:
 
 ```powershell
 npm install
 npm --prefix server install
 ```
 
-Crie a configuração local do backend copiando `server/.env.example` para `server/.env`. Gere um segredo próprio para `JWT_SECRET`; nunca reutilize o valor de exemplo em produção. O backend também aceita a configuração local legada em `server/src/.env`, mas `server/.env` é o caminho recomendado.
+Se `server/.env` já existir, **edite-o sem substituir o arquivo** e adicione `DATABASE_URL` com uma connection string PostgreSQL válida (por exemplo, a URL pooled do Neon). Preserve as demais variáveis locais e confira que `JWT_SECRET` está definido. Se o arquivo ainda não existir, copie `server/.env.example` para `server/.env`, depois substitua os valores de exemplo. O arquivo `.env` é ignorado pelo Git. O esquema é criado automaticamente quando a API inicia. Nunca cole credenciais reais no repositório, em comandos compartilhados ou no chat.
+
+O erro `DATABASE_URL não definido` significa que a API não encontrou uma URL PostgreSQL válida no ambiente. Abra `server/.env`, acrescente a linha `DATABASE_URL=...` usando a connection string do seu banco e reinicie `npm run dev:server`. Não use a URL de exemplo literalmente.
 
 Abra dois terminais na raiz do projeto:
 
@@ -52,28 +55,24 @@ npm run dev:server
 npm run dev
 ```
 
-O frontend abre em `http://localhost:5173`. O proxy do Vite encaminha `/api` para `http://localhost:3333`. O banco é criado em `server/data/library.db`; não coloque dados reais ou esse arquivo no controle de versão.
-
-Se o Vite escolher outra porta, atualize `CORS_ORIGIN` no arquivo do backend quando o frontend acessar a API diretamente. Pelo proxy de desenvolvimento, as requisições da interface usam a mesma origem do Vite.
+O frontend abre em `http://localhost:5173`. O proxy do Vite encaminha `/api` para `http://localhost:3333`, sem necessidade de CORS. A API conecta à base identificada por `DATABASE_URL`.
 
 ## Variáveis de ambiente
 
-### Backend (`server/.env`)
+### Backend local e Netlify Functions
 
 | Variável | Obrigatória | Descrição |
 | --- | --- | --- |
+| `DATABASE_URL` | Sim | URL PostgreSQL do Neon (use a URL pooled em produção e mantenha TLS habilitado). |
 | `JWT_SECRET` | Sim | Segredo longo e aleatório usado para assinar sessões. |
-| `PORT` | Não | Porta HTTP; padrão `3333`. |
-| `CORS_ORIGIN` | Não | Origens permitidas, separadas por vírgula; padrão local `http://localhost:5173`. |
 | `LOAN_DAYS` | Não | Duração do empréstimo em dias inteiros positivos; padrão `14`. |
-| `DB_PATH` | Não | Caminho do arquivo SQLite; padrão `./data/library.db`, relativo ao diretório do servidor. |
-| `TRUST_PROXY_HOPS` | Não | Número de proxies confiáveis à frente da API; padrão `0`. Configure apenas quando a plataforma exigir. |
+| `PORT` | Não | Porta do servidor local; padrão `3333`. |
 
 ### Frontend
 
-As variáveis `VITE_API_URL` e `VITE_COVERS_URL` apontam para os serviços públicos da Open Library. Em desenvolvimento, o frontend usa `/api` por meio do proxy do Vite. Com uma API publicada separadamente, configure `VITE_BACKEND_URL` com sua URL pública completa, terminando em `/api`, por exemplo `https://api.exemplo.com/api`.
+As variáveis `VITE_API_URL` e `VITE_COVERS_URL` apontam para os serviços públicos da Open Library. Tanto em desenvolvimento (por meio do proxy Vite) quanto em produção (por meio da Function Netlify), a API usa o caminho relativo `/api` no mesmo domínio.
 
-O arquivo `.env.example` documenta as variáveis do frontend. Variáveis com prefixo `VITE_` são incorporadas ao bundle público; não armazene segredos nelas.
+O arquivo `.env.example` documenta as variáveis públicas do frontend. Variáveis com prefixo `VITE_` são incorporadas ao bundle público; não armazene segredos nelas.
 
 ## API
 
@@ -99,23 +98,49 @@ npm run test:server
 npm --prefix server run build
 ```
 
-O teste de integração inicia uma API isolada e usa um banco SQLite temporário; não altera o banco de desenvolvimento.
+O teste de integração executa a API contra um PostgreSQL em memória de teste; não precisa de Neon nem altera dados de desenvolvimento.
 
-## Deploy deste monorepo na Vercel
+## Deploy na Netlify
 
-A configuração na raiz do repositório publica somente as interfaces: Biblioteca em `/biblioteca` e Painel Meteorológico em `/painel`. A raiz do domínio (`/`) redireciona para `/biblioteca/`. No projeto da Vercel, mantenha **Root Directory** na raiz do repositório (`.`), pois o `vercel.json` coordena os dois serviços a partir dali. Os builds Vite gravam em `dist/biblioteca` e `dist/painel`, dentro do `dist` de cada serviço.
+O arquivo `netlify.toml` configura o build estático (`dist`) e a Function `netlify/functions/api.ts`. O redirect `/api/*` para a Function vem antes do fallback SPA `/*`; frontend e API compartilham domínio, sem CORS nem URL de backend separada.
 
-As APIs não são serviços deste deploy. Por isso, cadastro, login, empréstimos, estante e operações que dependem da API não funcionarão no site publicado até que um backend seja hospedado e configurado. O frontend usa caminhos relativos para as rotas da API em desenvolvimento; defina `VITE_BACKEND_URL` para uma API externa antes do build quando ela estiver disponível.
+Ao importar o repositório `Jaysantosxx/DeploySemana6` na Netlify, configure:
 
-O backend desta aplicação grava dados em SQLite local. Não o publique como função serverless esperando que os dados persistam; escolha um host com armazenamento persistente antes de conectar uma instância de produção.
+| Configuração | Valor |
+| --- | --- |
+| Base directory | `Library/biblioteca` |
+| Build command | `npm run build` |
+| Publish directory | `dist` |
+| Functions directory | `netlify/functions` |
+
+Cadastre estas variáveis de ambiente no painel da Netlify antes do deploy:
+
+| Variável | Valor |
+| --- | --- |
+| `DATABASE_URL` | Connection string pooled do Neon |
+| `JWT_SECRET` | Segredo novo e aleatório; gere localmente e nunca o exponha |
+| `LOAN_DAYS` | `14` |
+| `VITE_API_URL` | `https://openlibrary.org` |
+| `VITE_COVERS_URL` | `https://covers.openlibrary.org` |
+| `VITE_LOAN_DAYS` | `14` |
+
+`PORT`, `CORS_ORIGIN` e `DB_PATH` não são necessários no deploy Netlify. A Function inicializa as tabelas PostgreSQL de forma idempotente; mantenha a URL pooled do Neon e o segredo JWT somente nas variáveis protegidas do provedor. Depois do deploy, verifique `/` e `/api/health`.
+
+Para gerar um segredo localmente sem o compartilhar:
+
+```powershell
+node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+```
 
 ## Estrutura
 
 ```text
 src/                  Interface React e páginas
 src/libraryApi.ts     Cliente HTTP da API da biblioteca
-server/src/           API Express e esquema SQLite
+server/src/           API Express, conexão PostgreSQL e esquema
 server/test/          Teste de integração da API
+netlify/functions/    Adaptador HTTP da API Express para Netlify Functions
+netlify.toml          Build, Functions e redirects da SPA/API
 docs/apresentacao.html Slides e roteiro de demonstração
 ```
 

@@ -1,7 +1,7 @@
 import type { Book, Loan, Reservation, ShelfItem, User } from './types';
 
 const configuredApiBase = import.meta.env.VITE_BACKEND_URL?.trim();
-const API_BASE = (configuredApiBase || (import.meta.env.DEV ? '/api' : '')).replace(/\/$/, '');
+const API_BASE = (configuredApiBase || '/api').replace(/\/$/, '');
 
 export interface LibrarySnapshot {
   user: User;
@@ -40,10 +40,6 @@ export async function requestLibrary<T>(
   path: string,
   { token, method = 'GET', body, signal }: RequestOptions = {}
 ): Promise<T> {
-  if (!API_BASE) {
-    throw new Error('Configure VITE_BACKEND_URL com a URL do backend antes de publicar o frontend.');
-  }
-
   const headers: Record<string, string> = {};
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   if (token) headers.Authorization = `Bearer ${token}`;
