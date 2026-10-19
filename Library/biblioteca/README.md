@@ -103,7 +103,9 @@ O teste de integração inicia uma API isolada e usa um banco SQLite temporário
 
 ## Deploy deste monorepo na Vercel
 
-A configuração na raiz do repositório publica somente as interfaces: Biblioteca em `/biblioteca` e Painel Meteorológico em `/painel`. As APIs não são serviços deste deploy. Por isso, cadastro, login, empréstimos, estante e operações que dependem da API não funcionarão no site publicado até que um backend seja hospedado e configurado. O frontend usa caminhos relativos para as rotas da API em desenvolvimento; defina `VITE_BACKEND_URL` para uma API externa antes do build quando ela estiver disponível.
+A configuração na raiz do repositório publica somente as interfaces: Biblioteca em `/biblioteca` e Painel Meteorológico em `/painel`. A raiz do domínio (`/`) redireciona para `/biblioteca/`. No projeto da Vercel, mantenha **Root Directory** na raiz do repositório (`.`), pois o `vercel.json` coordena os dois serviços a partir dali. Os builds Vite gravam em `dist/biblioteca` e `dist/painel`, dentro do `dist` de cada serviço.
+
+As APIs não são serviços deste deploy. Por isso, cadastro, login, empréstimos, estante e operações que dependem da API não funcionarão no site publicado até que um backend seja hospedado e configurado. O frontend usa caminhos relativos para as rotas da API em desenvolvimento; defina `VITE_BACKEND_URL` para uma API externa antes do build quando ela estiver disponível.
 
 O backend desta aplicação grava dados em SQLite local. Não o publique como função serverless esperando que os dados persistam; escolha um host com armazenamento persistente antes de conectar uma instância de produção.
 
